@@ -1,3 +1,4 @@
 /hindcast
 hindcast.yaml
 hindcast-traces/
+/dist/

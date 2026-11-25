@@ -10,11 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go vet ./...
-      - run: go test -race ./...
+      - run: make lint test
+      - name: build release archives
+        run: make dist
 
   # Replays the scenarios against the model in hindcast.example.yaml, using
   # the HINDCAST_API_KEY secret for whichever provider that names. Pull
@@ -27,6 +30,8 @@ jobs:
       HINDCAST_API_KEY: ${{ secrets.HINDCAST_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
