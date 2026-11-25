@@ -27,6 +27,7 @@ const usage = `usage: hindcast <command> [flags]
 
 commands:
   investigate  investigate an Alertmanager webhook payload
+  serve        receive Alertmanager webhooks and investigate in the background
   replay       re-run a recorded investigation without live systems
   eval         replay a directory of scenarios and check the reports
   tools        list the tools the read-only policy offers and hides
@@ -45,6 +46,7 @@ func main() {
 
 	commands := map[string]func(context.Context, []string) error{
 		"investigate": cmdInvestigate,
+		"serve":       cmdServe,
 		"replay":      cmdReplay,
 		"eval":        cmdEval,
 		"tools":       cmdTools,

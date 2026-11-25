@@ -19,6 +19,41 @@ type Config struct {
 	Servers  map[string]Server          `yaml:"servers"`
 	Budget   Budget                     `yaml:"budget"`
 	Prefetch []investigate.PrefetchCall `yaml:"prefetch"`
+	Redact   Redact                     `yaml:"redact"`
+	Notify   Notify                     `yaml:"notify"`
+	// Judge grades eval runs against scenario references. Optional; use a
+	// different model from the one being evaluated where you can.
+	Judge *Model `yaml:"judge"`
+}
+
+// Redact configures masking of tool output. The built-in rules are on
+// unless disabled.
+type Redact struct {
+	DisableBuiltin bool     `yaml:"disable_builtin"`
+	Patterns       []string `yaml:"patterns"`
+}
+
+// Notify lists where reports are sent besides stdout.
+type Notify struct {
+	Slack *Slack `yaml:"slack"`
+}
+
+// Slack is an incoming webhook. The URL is a credential, so the file names
+// the environment variable that holds it.
+type Slack struct {
+	WebhookURLEnv string `yaml:"webhook_url_env"`
+}
+
+// WebhookURL reads the URL from the environment.
+func (s Slack) WebhookURL() (string, error) {
+	if s.WebhookURLEnv == "" {
+		return "", errors.New("notify.slack.webhook_url_env is required")
+	}
+	url := os.Getenv(s.WebhookURLEnv)
+	if url == "" {
+		return "", fmt.Errorf("environment variable %s is not set", s.WebhookURLEnv)
+	}
+	return url, nil
 }
 
 // Model selects the LLM.
@@ -70,16 +105,12 @@ func Load(path string) (*Config, error) {
 }
 
 func (c *Config) validate() error {
-	var errs []error
-	switch c.Model.Provider {
-	case "anthropic", "openai":
-	case "":
-		errs = append(errs, errors.New("model.provider is required"))
-	default:
-		errs = append(errs, fmt.Errorf("model.provider %q is not anthropic or openai", c.Model.Provider))
+	errs := c.Model.validate("model")
+	if c.Judge != nil {
+		errs = append(errs, c.Judge.validate("judge")...)
 	}
-	if c.Model.Name == "" {
-		errs = append(errs, errors.New("model.name is required"))
+	if c.Notify.Slack != nil && c.Notify.Slack.WebhookURLEnv == "" {
+		errs = append(errs, errors.New("notify.slack.webhook_url_env is required"))
 	}
 	for name, s := range c.Servers {
 		if len(s.Command) == 0 {
@@ -92,6 +123,21 @@ func (c *Config) validate() error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (m Model) validate(field string) []error {
+	var errs []error
+	switch m.Provider {
+	case "anthropic", "openai":
+	case "":
+		errs = append(errs, fmt.Errorf("%s.provider is required", field))
+	default:
+		errs = append(errs, fmt.Errorf("%s.provider %q is not anthropic or openai", field, m.Provider))
+	}
+	if m.Name == "" {
+		errs = append(errs, fmt.Errorf("%s.name is required", field))
+	}
+	return errs
 }
 
 // APIKey reads the key from the configured environment variable. An unset

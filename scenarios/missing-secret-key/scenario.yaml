@@ -1,4 +1,5 @@
 description: Synthetic. payments-worker panics at start because a manifest change renamed the secret key it reads its webhook secret from.
 expect:
+  reference: "Commit e04b1aa changed the secretKeyRef key from webhook_secret to webhook-secret. The secret only has webhook_secret, and the reference is optional, so STRIPE_WEBHOOK_SECRET is empty and the worker panics at startup."
   root_cause: ["webhook-secret", "webhook_secret", "secret key"]
   cites: ["k8s__pods_log"]

@@ -33,6 +33,11 @@ budget:
 prefetch:
   - tool: k8s__events_list
     args: {namespace: "{{.Labels.namespace}}"}
+redact:
+  patterns: ['cust-\d+']
+notify:
+  slack: {webhook_url_env: SLACK_URL}
+judge: {provider: anthropic, name: judge-model, api_key_env: JUDGE_KEY}
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +47,9 @@ prefetch:
 	}
 	if b := cfg.Budget.Investigate(); b.MaxSteps != 8 || b.ToolTimeout != 10*time.Second {
 		t.Errorf("budget = %+v", b)
+	}
+	if cfg.Redact.DisableBuiltin || cfg.Redact.Patterns[0] != `cust-\d+` || cfg.Notify.Slack.WebhookURLEnv != "SLACK_URL" || cfg.Judge.Name != "judge-model" {
+		t.Errorf("redact/notify/judge = %+v %+v %+v", cfg.Redact, cfg.Notify.Slack, cfg.Judge)
 	}
 	if cfg.Prefetch[0].Args["namespace"] != "{{.Labels.namespace}}" {
 		t.Errorf("prefetch = %+v", cfg.Prefetch)
@@ -55,6 +63,8 @@ func TestLoadRejects(t *testing.T) {
 		"bad provider":     {"model: {provider: gemini, name: x}", "not anthropic or openai"},
 		"empty command":    {"model: {provider: openai, name: x}\nservers: {k8s: {}}", "servers.k8s.command"},
 		"prefetch no tool": {"model: {provider: openai, name: x}\nprefetch: [{args: {}}]", "prefetch[0].tool"},
+		"bad judge":        {"model: {provider: openai, name: x}\njudge: {provider: openai}", "judge.name is required"},
+		"slack no env":     {"model: {provider: openai, name: x}\nnotify: {slack: {}}", "webhook_url_env"},
 	} {
 		_, err := Load(write(t, tc.yaml))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {

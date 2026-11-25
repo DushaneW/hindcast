@@ -27,7 +27,8 @@ so there are no quality numbers. See [What is missing](#what-is-missing).
 - **Measured.** `hindcast eval` replays a directory of recorded incidents and
   checks each report. The plan is to publish those results for every change.
 - **Local and read-only by default.** No account, no hosted service, no
-  telemetry. A tool is offered to the model only if its MCP server marks it
+  telemetry. Credentials in tool output are masked before the model or the
+  trace sees them. A tool is offered to the model only if its MCP server marks it
   `readOnlyHint`, or you list it explicitly.
 - **Small core.** One Go binary. Integrations are MCP servers you already
   have, not SDKs compiled in.
@@ -45,8 +46,7 @@ Requires Go 1.25.
 
 ## Configure
 
-Copy [hindcast.example.yaml](hindcast.example.yaml) to `hindcast.yaml`. It
-has three parts:
+Copy [hindcast.example.yaml](hindcast.example.yaml) to `hindcast.yaml`.
 
 - `model`: `openai` covers any OpenAI-compatible endpoint: OpenAI, Ollama,
   vLLM, Gemini, OpenRouter, Groq and so on. `anthropic` uses Anthropic's
@@ -60,15 +60,28 @@ has three parts:
   the obvious context arrives in one parallel round trip instead of several
   model turns. String arguments are Go templates over the alert:
   `{{.Labels.namespace}}`, `{{rfc3339 (before .StartsAt "30m")}}`.
+- `redact`: tool output is masked before the model and the trace see it.
+  Built-in rules cover private keys, AWS, GitHub, Slack and OpenAI-style
+  keys, JWTs, bearer tokens, passwords in URLs, and `KEY=value` or
+  `name:/value:` pairs whose key ends in password, secret, token or api key.
+  Add your own regexps under `patterns`. Values with no recognisable shape
+  are not caught, for example Secret data under a neutral key name, so do
+  not give Hindcast credentials that can read Secrets.
+- `notify.slack`: posts each report to a Slack incoming webhook whose URL is
+  in the named environment variable.
+- `judge`: a model that grades eval results against scenario references.
 
 ## Use
 
 ```
-# Investigate; the trace goes to ./hindcast-traces/
+# Investigate; the trace and the report go to ./hindcast-traces/
 hindcast investigate -alert examples/alert.json
 
 # The payload can also come from stdin
 hindcast investigate < examples/alert.json
+
+# Receive Alertmanager webhooks on :9095/alerts
+HINDCAST_WEBHOOK_TOKEN=... hindcast serve
 
 # Re-run a recorded investigation with whatever model hindcast.yaml names
 hindcast replay hindcast-traces/20261120T030012Z-KubePodCrashLooping.jsonl
@@ -76,6 +89,27 @@ hindcast replay hindcast-traces/20261120T030012Z-KubePodCrashLooping.jsonl
 # Replay every scenario and check the reports; exits 1 if any fail
 hindcast eval scenarios/
 ```
+
+### Alertmanager
+
+```yaml
+receivers:
+  - name: hindcast
+    webhook_configs:
+      - url: http://hindcast:9095/alerts
+        send_resolved: false
+        http_config:
+          authorization:
+            credentials_file: /etc/alertmanager/hindcast-token
+```
+
+`serve` investigates each alert group once. Deliveries for a group that is
+queued, running, or was investigated less than `-cooldown` ago (default 1h)
+are acknowledged and dropped, so Alertmanager's repeats do not start new
+investigations. At most `-workers` investigations run at a time; when the
+queue is full the server answers 503 and Alertmanager retries. Without a
+token in `HINDCAST_WEBHOOK_TOKEN` anyone who can reach the port can start an
+investigation, and the server says so at startup.
 
 ## Scenarios
 
@@ -85,18 +119,22 @@ what a correct report must contain:
 ```yaml
 description: Pods OOMKilled after a deploy lowered the memory limit
 expect:
+  reference: A commit cut the memory limit from 512Mi to 256Mi; the service needs ~400Mi.
   root_cause: ["memory limit", "512Mi.*256Mi"]   # case-insensitive regexps; one must match
   cites: [k8s__events_list]                      # tools the evidence must cite
 ```
 
+With a `judge` configured, the root cause is graded against `reference` by
+that model; without one, against the regexps. Regexps reject correct answers
+phrased differently and accept wrong ones that use the right words. A judge
+is a model with its own errors: check a sample of its verdicts by hand, use
+a different model from the one under test, and report which model judged.
+
 Three scenarios in [scenarios/](scenarios/) are hand-written and synthetic.
 `k3s-sandbox-failure` was recorded from a live cluster. All of them check that
 the pipeline works end to end; they say nothing about how well any model does
-on real incidents. Real, anonymised traces are
-the most useful contribution this project can get.
-
-Regexp matching is crude. It rejects correct answers phrased differently and
-accepts wrong ones that use the right words. Treat a pass as a floor.
+on real incidents. Real, anonymised traces are the most useful contribution
+this project can get.
 
 When a replayed model calls a tool with arguments that were not recorded, it
 gets an error listing the argument sets that were. That keeps replay usable
@@ -107,10 +145,8 @@ looked at, which makes eval easier than the live task.
 
 - Results from a real model on real incidents. Nothing here claims a quality
   or speed number, because none has been measured.
-- A webhook server mode (`hindcast serve`) for Alertmanager.
-- Output to Slack or GitHub issues; reports go to stdout.
-- Redaction of secrets and identifiers before results reach the model.
-- Grading beyond regexps, for example a judge model with a published rubric.
+- Output to GitHub issues or PagerDuty; reports go to stdout, files and Slack.
+- MCP servers over HTTP; only stdio is supported.
 
 ## Develop
 

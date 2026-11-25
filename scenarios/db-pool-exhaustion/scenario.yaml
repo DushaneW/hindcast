@@ -1,4 +1,5 @@
 description: Synthetic. orders-api latency rises when a new reconcile cronjob shares its database connection pool; the database itself is healthy.
 expect:
+  reference: "The new reconcile-orders cronjob (commit c3f9e01) runs at 03:00 with 32 workers through orders-api's database connection pool, exhausting it (10/10 in use), so orders-api requests wait for connections. The database itself is not overloaded."
   root_cause: ["reconcile.*(pool|connection)", "(pool|connection).*reconcile"]
   cites: ["k8s__pods_log"]

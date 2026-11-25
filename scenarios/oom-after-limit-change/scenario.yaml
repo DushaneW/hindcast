@@ -1,4 +1,5 @@
 description: Synthetic. checkout-api crash loops after a commit halved its memory limit; a dependency bump in the same window is a distractor.
 expect:
+  reference: "Commit 5d0f7b4 lowered checkout-api's memory limit from 512Mi to 256Mi; the service needs about 400Mi after warming its product cache, so containers are OOMKilled and crash loop. The grpc-go bump is unrelated."
   root_cause: ["memory limit", "512Mi.*256Mi", "right-size"]
   cites: ["k8s__events_list"]

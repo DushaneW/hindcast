@@ -52,3 +52,19 @@ prefetch:
   - tool: k8s__pods_list_in_namespace
     args:
       namespace: "{{.Labels.namespace}}"
+
+# Masking of tool output before the model and the trace see it. The built-in
+# rules are on by default; add regexps for identifiers of your own.
+# redact:
+#   patterns: ['cust-[0-9]{6}']
+
+# notify:
+#   slack:
+#     webhook_url_env: SLACK_WEBHOOK_URL
+
+# Grades `hindcast eval` results against scenario references. Prefer a
+# different model from the one being evaluated.
+# judge:
+#   provider: openai
+#   name: gpt-5
+#   api_key_env: HINDCAST_JUDGE_API_KEY

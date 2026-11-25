@@ -3,14 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"regexp"
-	"time"
 
 	"github.com/hindcast/hindcast/internal/alert"
 	"github.com/hindcast/hindcast/internal/config"
@@ -38,35 +34,19 @@ func cmdInvestigate(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	model, err := newModel(cfg.Model)
+	l, err := openLive(ctx, cfg, *traceDir, serverLog(*verbose), os.Stderr)
 	if err != nil {
 		return err
 	}
-	box, err := connect(ctx, cfg, serverLog(*verbose))
-	if err != nil {
-		return err
-	}
-	defer box.Close()
-	if hidden := box.Hidden(); len(hidden) > 0 {
-		fmt.Fprintf(os.Stderr, "read-only policy hid %d tool(s); see \"hindcast tools\"\n", len(hidden))
-	}
+	defer l.Close()
 
-	inv := &investigate.Investigator{Model: model, Tools: box, Budget: cfg.Budget.Investigate(), Prefetch: cfg.Prefetch}
-	if *traceDir != "" {
-		f, path, err := createTrace(*traceDir, payload.Primary().Name())
-		if err != nil {
-			return err
+	rep, err := l.investigate(ctx, payload)
+	if rep != nil {
+		if perr := printReport(rep, *asJSON); perr != nil {
+			return perr
 		}
-		defer f.Close()
-		inv.Trace = trace.NewWriter(f)
-		fmt.Fprintf(os.Stderr, "recording to %s\n", path)
 	}
-
-	rep, err := inv.Run(ctx, payload)
-	if err != nil {
-		return err
-	}
-	return printReport(rep, *asJSON)
+	return err
 }
 
 func cmdReplay(ctx context.Context, args []string) error {
@@ -146,6 +126,16 @@ func cmdEval(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	runner := eval.Runner{Model: model, Budget: cfg.Budget.Investigate()}
+	judgeName := "none (regexp matching)"
+	if cfg.Judge != nil {
+		judgeModel, err := newModel(*cfg.Judge)
+		if err != nil {
+			return fmt.Errorf("judge: %w", err)
+		}
+		runner.Judge = &eval.Judge{Model: judgeModel}
+		judgeName = cfg.Judge.Name
+	}
 
 	var results []eval.Result
 	passed := 0
@@ -159,7 +149,7 @@ func cmdEval(ctx context.Context, args []string) error {
 			w = trace.NewWriter(f)
 			defer f.Close()
 		}
-		res := eval.Run(ctx, s, model, cfg.Budget.Investigate(), w)
+		res := runner.Run(ctx, s, w)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -179,7 +169,7 @@ func cmdEval(ctx context.Context, args []string) error {
 			return err
 		}
 	} else {
-		fmt.Printf("\n%d/%d passed (model %s)\n", passed, len(results), cfg.Model.Name)
+		fmt.Printf("\n%d/%d passed (model %s, judge %s)\n", passed, len(results), cfg.Model.Name, judgeName)
 	}
 	if passed < len(results) {
 		return exitError(1)
@@ -223,6 +213,9 @@ func printResult(r eval.Result) {
 		fmt.Printf("ERROR %s: %s\n", r.Scenario, r.Error)
 	case r.Pass:
 		fmt.Printf("PASS  %s (%d steps, %d tool calls)\n", r.Scenario, r.Report.Stats.Steps, r.Report.Stats.ToolCalls)
+		if r.Verdict != nil {
+			fmt.Printf("      judge: %s\n", r.Verdict.Reason)
+		}
 	default:
 		fmt.Printf("FAIL  %s\n", r.Scenario)
 		for _, f := range r.Failures {
@@ -253,24 +246,6 @@ func readAlert(path string) (alert.Payload, error) {
 		return alert.Payload{}, fmt.Errorf("read alert: %w", err)
 	}
 	return alert.Parse(data)
-}
-
-var unsafeFileChars = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
-
-func createTrace(dir, name string) (*os.File, string, error) {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, "", err
-	}
-	base := time.Now().UTC().Format("20060102T150405Z") + "-" + unsafeFileChars.ReplaceAllString(name, "_") + ".jsonl"
-	path := filepath.Join(dir, base)
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		if errors.Is(err, os.ErrExist) {
-			return nil, "", fmt.Errorf("trace %s already exists", path)
-		}
-		return nil, "", err
-	}
-	return f, path, nil
 }
 
 func serverLog(verbose bool) io.Writer {

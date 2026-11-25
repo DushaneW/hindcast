@@ -17,8 +17,10 @@ alert ──► prefetch (parallel) ──► model loop ──► submit_report
                │                      │
                └──────── tool.Box ────┘
                      │            │
-                  mcpbox      trace.Replayer
-               (live MCP)    (recorded results)
+               redact.Box    trace.Replayer
+                     │       (recorded results)
+                  mcpbox
+               (live MCP)
                      │
                 trace.Writer ──► trace.jsonl
 ```
@@ -49,6 +51,9 @@ twice without calling a tool. The last step tells the model to submit.
 | `llm`         | Neutral chat types; OpenAI-compatible and Anthropic HTTP  |
 | `investigate` | Prefetch, the loop, report validation                     |
 | `eval`        | Load scenarios, replay them, check reports                |
+| `redact`      | Masks credentials in tool output; a `Box` wrapper         |
+| `notify`      | Slack incoming webhook                                    |
+| `server`      | Webhook endpoint, queue, per-group dedupe and cooldown    |
 | `alert`       | Alertmanager webhook payloads                             |
 | `config`      | `hindcast.yaml`                                           |
 
@@ -72,14 +77,21 @@ server. A server that lies about it defeats the policy; prefer servers that
 also have their own read-only mode, and run them with credentials that
 cannot write.
 
-**Regexp grading for now.** Cheap, deterministic, and obviously limited. A
-judge model would grade better but needs its own validation before its
-scores mean anything.
+**Redact before the trace, not only before the model.** Traces are meant to
+be shared as scenarios, so they must not hold what the model was not allowed
+to see. The cost is that a replay cannot show what a redacted value was.
+
+**Two graders.** Regexps are cheap, deterministic and crude. A judge model
+grades meaning, but it is a model: its verdicts need spot checks by hand
+before a pass rate means anything, and a judge from the same family as the
+model under test may share its blind spots.
+
+**One investigation per alert group.** Alertmanager re-sends firing groups
+on every group and repeat interval. `serve` keys on `groupKey` and ignores
+repeats while a group is queued, running or within the cooldown.
 
 ## Not yet decided
 
-- Trace redaction: what to mask, and whether masking happens before the
-  model sees data or only before a trace is shared.
 - How eval runs in CI for pull requests from forks, which do not get secrets.
   Likely: maintainers trigger it, results posted as a comment.
 - Whether to support MCP over HTTP in addition to stdio.

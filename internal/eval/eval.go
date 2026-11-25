@@ -6,12 +6,14 @@
 //
 //	description: Pods OOMKilled after a deploy lowered the memory limit
 //	expect:
+//	  reference: A commit cut the memory limit from 512Mi to 256Mi.
 //	  root_cause: ["memory limit", "oom"]   # regexps, case-insensitive; one must match
 //	  cites: [k8s__events_list]             # tools the evidence must include
 //
-// Matching root causes by regexp is crude: it misses correct answers phrased
-// differently and accepts wrong ones that mention the right words. It is a
-// floor, not a grade.
+// With a Judge, the root cause is graded against the reference by a model.
+// Without one, it is matched against the regexps. Regexps are crude: they
+// miss correct answers phrased differently and accept wrong ones that use the
+// right words. They are a floor, not a grade.
 package eval
 
 import (
@@ -35,6 +37,7 @@ type Scenario struct {
 	Name        string `yaml:"-"`
 	Description string `yaml:"description"`
 	Expect      struct {
+		Reference string   `yaml:"reference"`
 		RootCause []string `yaml:"root_cause"`
 		Cites     []string `yaml:"cites"`
 	} `yaml:"expect"`
@@ -47,7 +50,15 @@ type Result struct {
 	Pass     bool                `json:"pass"`
 	Failures []string            `json:"failures,omitempty"`
 	Error    string              `json:"error,omitempty"`
+	Verdict  *Verdict            `json:"verdict,omitempty"`
 	Report   *investigate.Report `json:"report,omitempty"`
+}
+
+// Runner replays scenarios. Judge is optional.
+type Runner struct {
+	Model  llm.Model
+	Judge  *Judge
+	Budget investigate.Budget
 }
 
 // Load reads every scenario under dir, sorted by name.
@@ -81,8 +92,8 @@ func loadScenario(dir string) (*Scenario, error) {
 	if err := yaml.Unmarshal(data, &s); err != nil {
 		return nil, err
 	}
-	if len(s.Expect.RootCause) == 0 {
-		return nil, fmt.Errorf("expect.root_cause is empty")
+	if len(s.Expect.RootCause) == 0 && s.Expect.Reference == "" {
+		return nil, fmt.Errorf("expect needs root_cause, reference, or both")
 	}
 	for _, re := range s.Expect.RootCause {
 		if _, err := regexp.Compile("(?i)" + re); err != nil {
@@ -97,8 +108,13 @@ func loadScenario(dir string) (*Scenario, error) {
 }
 
 // Run replays one scenario. traceOut, if not nil, receives the new trace.
-func Run(ctx context.Context, s *Scenario, model llm.Model, budget investigate.Budget, traceOut *trace.Writer) Result {
+func (r Runner) Run(ctx context.Context, s *Scenario, traceOut *trace.Writer) Result {
 	res := Result{Scenario: s.Name}
+	useJudge := r.Judge != nil && s.Expect.Reference != ""
+	if !useJudge && len(s.Expect.RootCause) == 0 {
+		res.Error = "scenario has only a reference; run it with a judge"
+		return res
+	}
 	payload, err := alert.Parse(s.trace.Header.Alert)
 	if err != nil {
 		res.Error = err.Error()
@@ -114,20 +130,32 @@ func Run(ctx context.Context, s *Scenario, model llm.Model, budget investigate.B
 		res.Error = err.Error()
 		return res
 	}
-	inv := &investigate.Investigator{Model: model, Tools: box, Trace: traceOut, Budget: budget, Prefetch: prefetch}
+	inv := &investigate.Investigator{Model: r.Model, Tools: box, Trace: traceOut, Budget: r.Budget, Prefetch: prefetch}
 	rep, err := inv.Run(ctx, payload)
 	if err != nil {
 		res.Error = err.Error()
 		return res
 	}
 	res.Report = rep
-	res.Failures = s.check(rep)
+	if useJudge {
+		v, err := r.Judge.Grade(ctx, s.Expect.Reference, rep)
+		if err != nil {
+			res.Error = err.Error()
+			return res
+		}
+		res.Verdict = &v
+		if !v.Correct {
+			res.Failures = append(res.Failures, "judge: "+v.Reason)
+		}
+	} else {
+		res.Failures = append(res.Failures, s.matchRootCause(rep)...)
+	}
+	res.Failures = append(res.Failures, s.checkCitations(rep)...)
 	res.Pass = len(res.Failures) == 0
 	return res
 }
 
-func (s *Scenario) check(rep *investigate.Report) []string {
-	var failures []string
+func (s *Scenario) matchRootCause(rep *investigate.Report) []string {
 	matched := false
 	for _, re := range s.Expect.RootCause {
 		if regexp.MustCompile("(?i)" + re).MatchString(rep.RootCause) {
@@ -136,8 +164,13 @@ func (s *Scenario) check(rep *investigate.Report) []string {
 		}
 	}
 	if !matched {
-		failures = append(failures, fmt.Sprintf("root cause %q matches none of %q", rep.RootCause, s.Expect.RootCause))
+		return []string{fmt.Sprintf("root cause %q matches none of %q", rep.RootCause, s.Expect.RootCause)}
 	}
+	return nil
+}
+
+func (s *Scenario) checkCitations(rep *investigate.Report) []string {
+	var failures []string
 	cited := make(map[string]bool)
 	for _, e := range rep.Evidence {
 		cited[e.Tool] = true

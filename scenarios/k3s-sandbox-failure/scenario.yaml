@@ -1,4 +1,5 @@
 description: Recorded from a live k3s cluster through kubernetes-mcp-server. Pods stay in ContainerCreating because the container runtime cannot create pod sandboxes (runc fails inside a nested container).
 expect:
+  reference: "The container runtime cannot create pod sandboxes (runc fails with \"can't get final child's PID from pipe\"), so pods stay in ContainerCreating. The workload itself is not at fault."
   root_cause: ["sandbox", "runc", "container runtime"]
   cites: [k8s__events_list]

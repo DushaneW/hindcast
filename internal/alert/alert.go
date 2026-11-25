@@ -33,6 +33,7 @@ func (a Alert) Name() string {
 type Payload struct {
 	Status       string            `json:"status"`
 	Receiver     string            `json:"receiver"`
+	GroupKey     string            `json:"groupKey"`
 	GroupLabels  map[string]string `json:"groupLabels"`
 	CommonLabels map[string]string `json:"commonLabels"`
 	ExternalURL  string            `json:"externalURL"`
@@ -49,6 +50,16 @@ func Parse(data []byte) (Payload, error) {
 		return Payload{}, errors.New("alertmanager payload has no alerts")
 	}
 	return p, nil
+}
+
+// Firing reports whether any alert in the payload is firing.
+func (p Payload) Firing() bool {
+	for _, a := range p.Alerts {
+		if a.Status == "firing" {
+			return true
+		}
+	}
+	return false
 }
 
 // Primary is the alert the investigation centres on: the first firing one,
