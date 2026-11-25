@@ -16,13 +16,15 @@ jobs:
       - run: go vet ./...
       - run: go test -race ./...
 
-  # Replays the scenarios against a real model. Pull requests from forks get
-  # no secrets, so this runs only for branches in this repository.
+  # Replays the scenarios against the model in hindcast.example.yaml, using
+  # the HINDCAST_API_KEY secret for whichever provider that names. Pull
+  # requests from forks get no secrets, so this runs only for branches in
+  # this repository.
   eval:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      HINDCAST_API_KEY: ${{ secrets.HINDCAST_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -30,6 +32,6 @@ jobs:
           go-version-file: go.mod
       # Informational until the scenarios are real incidents.
       - name: eval
-        if: env.ANTHROPIC_API_KEY != ''
+        if: env.HINDCAST_API_KEY != ''
         continue-on-error: true
         run: go run ./cmd/hindcast eval -c hindcast.example.yaml scenarios/ | tee -a "$GITHUB_STEP_SUMMARY"

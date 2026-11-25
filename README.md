@@ -48,9 +48,11 @@ Requires Go 1.25.
 Copy [hindcast.example.yaml](hindcast.example.yaml) to `hindcast.yaml`. It
 has three parts:
 
-- `model`: `anthropic`, or `openai` for any OpenAI-compatible endpoint
-  (OpenAI, Ollama, vLLM, OpenRouter). The API key is read from the
-  environment variable named in `api_key_env`; it never goes in the file.
+- `model`: `openai` covers any OpenAI-compatible endpoint: OpenAI, Ollama,
+  vLLM, Gemini, OpenRouter, Groq and so on. `anthropic` uses Anthropic's
+  native API. The example file has a block for each. The key is read from
+  the environment variable named in `api_key_env` (the example uses
+  `HINDCAST_API_KEY`); it never goes in the file.
 - `servers`: MCP servers to start over stdio. Run `hindcast tools` to see
   which tools the read-only policy offers and which it hides. Add a hidden
   tool to `allow` only if you have checked that it does not change anything.

@@ -46,7 +46,7 @@ twice without calling a tool. The last step tells the model to submit.
 | `tool`        | `Box` interface: list tools, call one                     |
 | `mcpbox`      | `Box` over MCP sessions; read-only policy                 |
 | `trace`       | JSONL trace format; `Replayer` is a `Box` over a trace    |
-| `llm`         | Neutral chat types; Anthropic and OpenAI-compatible HTTP  |
+| `llm`         | Neutral chat types; OpenAI-compatible and Anthropic HTTP  |
 | `investigate` | Prefetch, the loop, report validation                     |
 | `eval`        | Load scenarios, replay them, check reports                |
 | `alert`       | Alertmanager webhook payloads                             |
