@@ -1,0 +1,17 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "hindcast",
+  "groupLabels": {"alertname": "KubePodCrashLooping"},
+  "commonLabels": {"alertname": "KubePodCrashLooping", "namespace": "shop", "severity": "critical"},
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {"alertname": "KubePodCrashLooping", "namespace": "shop", "pod": "checkout-api-6f7c9-x2kq", "severity": "critical"},
+      "annotations": {"summary": "Pod shop/checkout-api-6f7c9-x2kq is crash looping"},
+      "startsAt": "2026-11-20T03:00:00Z",
+      "generatorURL": "http://prometheus.example/graph?g0.expr=kube_pod_container_status_restarts_total",
+      "fingerprint": "5c1d2a7e9b0f3c44"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+description: Synthetic. checkout-api crash loops after a commit halved its memory limit; a dependency bump in the same window is a distractor.
+expect:
+  root_cause: ["memory limit", "512Mi.*256Mi", "right-size"]
+  cites: ["k8s__events_list"]

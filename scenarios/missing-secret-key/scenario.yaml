@@ -1,0 +1,4 @@
+description: Synthetic. payments-worker panics at start because a manifest change renamed the secret key it reads its webhook secret from.
+expect:
+  root_cause: ["webhook-secret", "webhook_secret", "secret key"]
+  cites: ["k8s__pods_log"]

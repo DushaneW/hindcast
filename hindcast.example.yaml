@@ -1,0 +1,35 @@
+# Copy to hindcast.yaml. Tool names below depend on the MCP server versions
+# you run; check them with `hindcast tools`.
+
+model:
+  provider: anthropic
+  name: claude-sonnet-5-5
+  api_key_env: ANTHROPIC_API_KEY
+
+# Local model through Ollama's OpenAI-compatible endpoint:
+# model:
+#   provider: openai
+#   name: qwen3:32b
+#   base_url: http://localhost:11434/v1
+
+servers:
+  k8s:
+    command: [npx, -y, kubernetes-mcp-server@latest, --read-only]
+  github:
+    command: [github-mcp-server, stdio, --read-only]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}
+
+budget:
+  max_steps: 15
+  max_tokens: 4096
+  tool_timeout: 30s
+  max_result_bytes: 16384
+
+prefetch:
+  - tool: k8s__events_list
+    args:
+      namespace: "{{.Labels.namespace}}"
+  - tool: k8s__pods_list_in_namespace
+    args:
+      namespace: "{{.Labels.namespace}}"

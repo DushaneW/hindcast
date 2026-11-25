@@ -1,0 +1,4 @@
+description: Synthetic. orders-api latency rises when a new reconcile cronjob shares its database connection pool; the database itself is healthy.
+expect:
+  root_cause: ["reconcile.*(pool|connection)", "(pool|connection).*reconcile"]
+  cites: ["k8s__pods_log"]
