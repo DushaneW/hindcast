@@ -39,7 +39,7 @@ so there are no quality numbers. See [What is missing](#what-is-missing).
 ## Install
 
 ```
-go install github.com/hindcast/hindcast/cmd/hindcast@latest
+go install github.com/DushaneW/Hindcast/cmd/hindcast@latest
 ```
 
 Requires Go 1.25.

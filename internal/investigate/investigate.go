@@ -13,10 +13,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/hindcast/hindcast/internal/alert"
-	"github.com/hindcast/hindcast/internal/llm"
-	"github.com/hindcast/hindcast/internal/tool"
-	"github.com/hindcast/hindcast/internal/trace"
+	"github.com/DushaneW/Hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/trace"
 )
 
 // ErrBudget is returned when the model does not submit a report within the

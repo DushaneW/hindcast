@@ -26,10 +26,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/hindcast/hindcast/internal/alert"
-	"github.com/hindcast/hindcast/internal/investigate"
-	"github.com/hindcast/hindcast/internal/llm"
-	"github.com/hindcast/hindcast/internal/trace"
+	"github.com/DushaneW/Hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/trace"
 )
 
 // Scenario is one recorded incident with expectations.

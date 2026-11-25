@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hindcast/hindcast/internal/investigate"
-	"github.com/hindcast/hindcast/internal/llm"
-	"github.com/hindcast/hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/tool"
 )
 
 // Judge grades a report's root cause against a scenario's reference with a

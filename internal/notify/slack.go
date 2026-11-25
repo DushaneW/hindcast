@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hindcast/hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/investigate"
 )
 
 // Slack posts reports to a Slack incoming webhook.

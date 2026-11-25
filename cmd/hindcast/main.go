@@ -15,9 +15,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/hindcast/hindcast/internal/config"
-	"github.com/hindcast/hindcast/internal/llm"
-	"github.com/hindcast/hindcast/internal/mcpbox"
+	"github.com/DushaneW/Hindcast/internal/config"
+	"github.com/DushaneW/Hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/mcpbox"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".

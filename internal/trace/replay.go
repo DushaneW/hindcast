@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hindcast/hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/tool"
 )
 
 // Replayer is a tool.Box that answers from a recorded trace. A call matches a

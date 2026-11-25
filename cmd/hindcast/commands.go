@@ -8,11 +8,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/hindcast/hindcast/internal/alert"
-	"github.com/hindcast/hindcast/internal/config"
-	"github.com/hindcast/hindcast/internal/eval"
-	"github.com/hindcast/hindcast/internal/investigate"
-	"github.com/hindcast/hindcast/internal/trace"
+	"github.com/DushaneW/Hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/config"
+	"github.com/DushaneW/Hindcast/internal/eval"
+	"github.com/DushaneW/Hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/trace"
 )
 
 func cmdInvestigate(ctx context.Context, args []string) error {

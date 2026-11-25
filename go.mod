@@ -1,4 +1,4 @@
-module github.com/hindcast/hindcast
+module github.com/DushaneW/Hindcast
 
 go 1.25.0
 

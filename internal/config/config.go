@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/hindcast/hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/investigate"
 )
 
 // Config is the file format.

@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/hindcast/hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/tool"
 )
 
 // Role of a message author.

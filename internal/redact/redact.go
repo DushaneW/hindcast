@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"sync/atomic"
 
-	"github.com/hindcast/hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/tool"
 )
 
 type rule struct {

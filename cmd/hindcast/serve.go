@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/hindcast/hindcast/internal/alert"
-	"github.com/hindcast/hindcast/internal/config"
-	"github.com/hindcast/hindcast/internal/server"
+	"github.com/DushaneW/Hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/config"
+	"github.com/DushaneW/Hindcast/internal/server"
 )
 
 func cmdServe(ctx context.Context, args []string) error {

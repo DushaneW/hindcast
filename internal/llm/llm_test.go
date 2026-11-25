@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hindcast/hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/tool"
 )
 
 var conversation = Request{

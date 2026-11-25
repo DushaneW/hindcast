@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hindcast/hindcast/internal/investigate"
-	"github.com/hindcast/hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/llm"
 )
 
 // twoStep checks events, then submits rootCause citing that call.

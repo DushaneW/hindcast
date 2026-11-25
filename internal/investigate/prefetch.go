@@ -10,9 +10,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hindcast/hindcast/internal/alert"
-	"github.com/hindcast/hindcast/internal/llm"
-	"github.com/hindcast/hindcast/internal/trace"
+	"github.com/DushaneW/Hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/trace"
 )
 
 // PrefetchCall is a tool call made for every alert before the model starts.

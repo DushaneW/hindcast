@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hindcast/hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/investigate"
 )
 
 var report = &investigate.Report{

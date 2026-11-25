@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hindcast/hindcast/internal/tool"
+	"github.com/DushaneW/Hindcast/internal/tool"
 )
 
 // Version is the trace format version written by this build.

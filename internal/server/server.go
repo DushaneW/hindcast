@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hindcast/hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/alert"
 )
 
 // InvestigateFunc runs one investigation to completion.

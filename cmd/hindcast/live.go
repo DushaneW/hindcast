@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hindcast/hindcast/internal/alert"
-	"github.com/hindcast/hindcast/internal/config"
-	"github.com/hindcast/hindcast/internal/investigate"
-	"github.com/hindcast/hindcast/internal/llm"
-	"github.com/hindcast/hindcast/internal/mcpbox"
-	"github.com/hindcast/hindcast/internal/notify"
-	"github.com/hindcast/hindcast/internal/redact"
-	"github.com/hindcast/hindcast/internal/trace"
+	"github.com/DushaneW/Hindcast/internal/alert"
+	"github.com/DushaneW/Hindcast/internal/config"
+	"github.com/DushaneW/Hindcast/internal/investigate"
+	"github.com/DushaneW/Hindcast/internal/llm"
+	"github.com/DushaneW/Hindcast/internal/mcpbox"
+	"github.com/DushaneW/Hindcast/internal/notify"
+	"github.com/DushaneW/Hindcast/internal/redact"
+	"github.com/DushaneW/Hindcast/internal/trace"
 )
 
 // live is what investigations against real systems share: the model, the
