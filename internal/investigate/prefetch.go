@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
 	"github.com/hindcast/hindcast/internal/alert"
 	"github.com/hindcast/hindcast/internal/llm"
+	"github.com/hindcast/hindcast/internal/trace"
 )
 
 // PrefetchCall is a tool call made for every alert before the model starts.
@@ -18,6 +22,41 @@ import (
 type PrefetchCall struct {
 	Tool string         `yaml:"tool"`
 	Args map[string]any `yaml:"args"`
+	// Literal skips templating. Replays set it, because recorded arguments
+	// are final values that may legitimately contain "{{".
+	Literal bool `yaml:"-"`
+}
+
+// PrefetchFromTrace returns the prefetch calls of a recorded investigation,
+// so a replay starts from the same context the original model saw.
+//
+// Prefetch calls run concurrently, so the trace holds them in completion
+// order. They are returned in ID order, which is the order they were issued
+// in; that keeps call IDs, and so citations, stable across replays.
+func PrefetchFromTrace(tr *trace.Trace) ([]PrefetchCall, error) {
+	var calls []trace.Call
+	for _, c := range tr.Calls {
+		if c.Prefetch {
+			calls = append(calls, c)
+		}
+	}
+	seq := func(id string) int {
+		n, _ := strconv.Atoi(strings.TrimPrefix(id, "c"))
+		return n
+	}
+	sort.SliceStable(calls, func(i, j int) bool { return seq(calls[i].ID) < seq(calls[j].ID) })
+
+	var out []PrefetchCall
+	for _, c := range calls {
+		args := map[string]any{}
+		if len(c.Args) > 0 {
+			if err := json.Unmarshal(c.Args, &args); err != nil {
+				return nil, fmt.Errorf("prefetch call %s: %w", c.ID, err)
+			}
+		}
+		out = append(out, PrefetchCall{Tool: c.Tool, Args: args, Literal: true})
+	}
+	return out, nil
 }
 
 var templateFuncs = template.FuncMap{
@@ -40,7 +79,11 @@ func expandPrefetch(calls []PrefetchCall, a alert.Alert) ([]llm.Call, []string) 
 	var out []llm.Call
 	var warnings []string
 	for i, pc := range calls {
-		args, err := render(pc.Args, a)
+		var args any = pc.Args
+		var err error
+		if !pc.Literal {
+			args, err = render(pc.Args, a)
+		}
 		if err != nil {
 			warnings = append(warnings, fmt.Sprintf("prefetch %s skipped: %v", pc.Tool, err))
 			continue

@@ -239,9 +239,10 @@ func TestTraceReplays(t *testing.T) {
 	var buf bytes.Buffer
 	turns := []func(llm.Request) llm.Message{
 		func(llm.Request) llm.Message { return call("m1", "k8s__events", `{"namespace":"shop"}`) },
-		submit("m2", `{"summary": "s", "root_cause": "x", "confidence": "medium", "evidence": [{"call_id": "c1", "finding": "f"}]}`),
+		submit("m2", `{"summary": "s", "root_cause": "x", "confidence": "medium", "evidence": [{"call_id": "c2", "finding": "f"}]}`),
 	}
-	live := &Investigator{Model: &scripted{turns: turns}, Tools: &fakeBox{}, Trace: trace.NewWriter(&buf)}
+	live := &Investigator{Model: &scripted{turns: turns}, Tools: &fakeBox{}, Trace: trace.NewWriter(&buf),
+		Prefetch: []PrefetchCall{{Tool: "k8s__logs", Args: map[string]any{"pod": "{{.Labels.pod}}", "tail": 200}}}}
 	if _, err := live.Run(context.Background(), payload); err != nil {
 		t.Fatal(err)
 	}
@@ -258,19 +259,52 @@ func TestTraceReplays(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var seen string
+	prefetch, err := PrefetchFromTrace(tr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var prefetched, seen string
 	replayTurns := []func(llm.Request) llm.Message{
-		turns[0],
+		func(req llm.Request) llm.Message {
+			prefetched = lastResults(req)[0].Text
+			return turns[0](req)
+		},
 		func(req llm.Request) llm.Message {
 			seen = lastResults(req)[0].Text
 			return turns[1](req)
 		},
 	}
-	rep, err := (&Investigator{Model: &scripted{turns: replayTurns}, Tools: replayer}).Run(context.Background(), recorded)
+	rep, err := (&Investigator{Model: &scripted{turns: replayTurns}, Tools: replayer, Prefetch: prefetch}).Run(context.Background(), recorded)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if seen != "[call c1]\nk8s__events ok" || rep.Confidence != Medium {
+	if prefetched != "[call c1]\nk8s__logs ok" {
+		t.Errorf("replay must start from the recorded prefetch, got %q", prefetched)
+	}
+	if seen != "[call c2]\nk8s__events ok" || rep.Confidence != Medium {
 		t.Errorf("replayed result = %q, report = %+v", seen, rep)
+	}
+}
+
+func TestPrefetchFromTraceUsesIssueOrder(t *testing.T) {
+	tr := &trace.Trace{Calls: []trace.Call{
+		{ID: "c10", Tool: "late", Args: json.RawMessage(`{}`), Prefetch: true},
+		{ID: "c2", Tool: "second", Args: json.RawMessage(`{"a":1}`), Prefetch: true},
+		{ID: "c11", Tool: "model_call"},
+		{ID: "c1", Tool: "first", Prefetch: true},
+	}}
+	got, err := PrefetchFromTrace(tr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var order []string
+	for _, pc := range got {
+		order = append(order, pc.Tool)
+	}
+	if strings.Join(order, ",") != "first,second,late" {
+		t.Errorf("order = %v", order)
+	}
+	if got[0].Args == nil || !got[0].Literal {
+		t.Errorf("recorded calls without arguments must replay as {} literally: %+v", got[0])
 	}
 }

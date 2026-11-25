@@ -41,6 +41,7 @@ type Call struct {
 	ID         string          `json:"id"`
 	Tool       string          `json:"tool"`
 	Args       json.RawMessage `json:"args"`
+	Prefetch   bool            `json:"prefetch,omitempty"` // made before the model's first turn
 	Result     tool.Result     `json:"result"`
 	Error      string          `json:"error,omitempty"`
 	StartedAt  time.Time       `json:"started_at"`

@@ -80,7 +80,7 @@ func (inv *Investigator) Run(ctx context.Context, p alert.Payload) (*Report, err
 	calls, warnings := expandPrefetch(inv.Prefetch, p.Primary())
 	r.warn = warnings
 	if len(calls) > 0 {
-		results, err := r.execute(ctx, calls)
+		results, err := r.execute(ctx, calls, true)
 		if err != nil {
 			return nil, err
 		}
@@ -131,7 +131,7 @@ func (inv *Investigator) Run(ctx context.Context, p alert.Payload) (*Report, err
 			}
 			return r.finish(rep, p, start)
 		}
-		executed, err := r.execute(ctx, toolCalls)
+		executed, err := r.execute(ctx, toolCalls, false)
 		if err != nil {
 			return nil, err
 		}
@@ -166,7 +166,7 @@ func (r *run) snapshot() map[string]string {
 // execute runs calls concurrently and returns results in call order. Only a
 // cancelled context or a trace write failure aborts the investigation; any
 // other failure is reported to the model as an error result.
-func (r *run) execute(ctx context.Context, calls []llm.Call) ([]llm.Result, error) {
+func (r *run) execute(ctx context.Context, calls []llm.Call, prefetch bool) ([]llm.Result, error) {
 	results := make([]llm.Result, len(calls))
 	errs := make([]error, len(calls))
 	var wg sync.WaitGroup
@@ -175,7 +175,7 @@ func (r *run) execute(ctx context.Context, calls []llm.Call) ([]llm.Result, erro
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			results[i], errs[i] = r.call(ctx, id, c)
+			results[i], errs[i] = r.call(ctx, id, c, prefetch)
 		}()
 	}
 	wg.Wait()
@@ -195,7 +195,7 @@ func (r *run) register(toolName string) string {
 	return id
 }
 
-func (r *run) call(ctx context.Context, id string, c llm.Call) (llm.Result, error) {
+func (r *run) call(ctx context.Context, id string, c llm.Call, prefetch bool) (llm.Result, error) {
 	started := time.Now()
 	var res tool.Result
 	var callErr error
@@ -208,7 +208,7 @@ func (r *run) call(ctx context.Context, id string, c llm.Call) (llm.Result, erro
 	}
 
 	if r.inv.Trace != nil {
-		rec := trace.Call{ID: id, Tool: c.Name, Args: c.Args, Result: res, StartedAt: started.UTC(), DurationMS: time.Since(started).Milliseconds()}
+		rec := trace.Call{ID: id, Tool: c.Name, Args: c.Args, Prefetch: prefetch, Result: res, StartedAt: started.UTC(), DurationMS: time.Since(started).Milliseconds()}
 		if callErr != nil {
 			rec.Error = callErr.Error()
 		}

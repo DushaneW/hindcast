@@ -12,10 +12,11 @@ It takes an Alertmanager webhook payload, gathers context through MCP servers
 (Kubernetes, Prometheus, GitHub, whatever you run), and prints a report with a
 root cause, a confidence level, and the tool calls that support it.
 
-Status: early. The core loop, recording, replay and eval work and are tested
-against fake models and fake MCP servers. It has not yet been run against a
-real cluster with a real model by anyone, and there are no quality numbers
-yet. See [What is missing](#what-is-missing).
+Status: early. Recording, replay, eval and the read-only policy have been run
+against a live k3s cluster through
+[kubernetes-mcp-server](https://github.com/containers/kubernetes-mcp-server),
+with a scripted stand-in for the model. No real model has been evaluated yet,
+so there are no quality numbers. See [What is missing](#what-is-missing).
 
 ## How it differs from other AI SRE agents
 
@@ -86,9 +87,10 @@ expect:
   cites: [k8s__events_list]                      # tools the evidence must cite
 ```
 
-The three scenarios in [scenarios/](scenarios/) are hand-written and
-synthetic. They check that the pipeline works end to end; they say nothing
-about how well any model does on real incidents. Real, anonymised traces are
+Three scenarios in [scenarios/](scenarios/) are hand-written and synthetic.
+`k3s-sandbox-failure` was recorded from a live cluster. All of them check that
+the pipeline works end to end; they say nothing about how well any model does
+on real incidents. Real, anonymised traces are
 the most useful contribution this project can get.
 
 Regexp matching is crude. It rejects correct answers phrased differently and

@@ -105,7 +105,11 @@ func cmdReplay(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	inv := &investigate.Investigator{Model: model, Tools: box, Budget: cfg.Budget.Investigate()}
+	prefetch, err := investigate.PrefetchFromTrace(tr)
+	if err != nil {
+		return err
+	}
+	inv := &investigate.Investigator{Model: model, Tools: box, Budget: cfg.Budget.Investigate(), Prefetch: prefetch}
 	rep, err := inv.Run(ctx, payload)
 	if err != nil {
 		return err

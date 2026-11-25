@@ -109,7 +109,12 @@ func Run(ctx context.Context, s *Scenario, model llm.Model, budget investigate.B
 		res.Error = err.Error()
 		return res
 	}
-	inv := &investigate.Investigator{Model: model, Tools: box, Trace: traceOut, Budget: budget}
+	prefetch, err := investigate.PrefetchFromTrace(s.trace)
+	if err != nil {
+		res.Error = err.Error()
+		return res
+	}
+	inv := &investigate.Investigator{Model: model, Tools: box, Trace: traceOut, Budget: budget, Prefetch: prefetch}
 	rep, err := inv.Run(ctx, payload)
 	if err != nil {
 		res.Error = err.Error()
