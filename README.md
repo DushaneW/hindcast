@@ -1,5 +1,7 @@
 # Hindcast
 
+Repository: https://github.com/DushaneW/Hindcast
+
 Hindcast investigates production alerts with an LLM and read-only tools, and
 records every investigation so it can be replayed later without access to the
 systems it queried.
