@@ -259,13 +259,8 @@ Know what the grades mean:
 
 See [SECURITY.md](SECURITY.md) to report a vulnerability.
 
-## Compared with OpenSRE
 
-[OpenSRE](https://github.com/Tracer-Cloud/opensre) is the project Hindcast
-was measured against while it was designed. Facts below were checked in its
-repository in November 2026.
-
-| | OpenSRE | Hindcast |
+| Hindcast |
 |---|---|---|
 | Account required | Interactive shell opens only for a signed-in account | No account |
 | Telemetry | Product analytics and Sentry, on by default (opt-out) | None |
